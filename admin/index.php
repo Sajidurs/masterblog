@@ -1,22 +1,61 @@
-<?php 
-$connect = mysqli_connect('localhost', 'root', '', 'master_admin_login');
+<?php
 
-if(isset($_POST['submit'])){
-  $email= $_POST['email'];
-  $password= $_POST['password'];
+$filepath = dirname(__FILE__);
+include $filepath . "/../config/Database.php";
+include $filepath . "/helpers/helper.php";
 
-  $sql = "INSERT INTO login(email, password) 
-  values ('$email', '$password')";
-
-  if(mysqli_query($connect,$sql) == TRUE){
-    echo "Data Inserted Success";
-
-  } else{
-    echo "Need Nelps?";
-  }
-
+// Session
+session_start();
+if(isset($_SESSION['id']) && $_SESSION['is_logined']==true){
+    header('Location:deshboard.php');
 }
-     
+
+if ($_SERVER["REQUEST_METHOD"] == 'POST') {
+    // Data Validation
+    $email = inputValidate($_POST["email"]);
+    $password = inputValidate($_POST["password"]);
+
+
+    if (empty($email)) {
+        $error['emailError'] = 'Email is required';
+    } else {
+        $data['email'] = $email;
+    }
+    if (empty($password)) {
+        $error['passwordError'] = 'Password is required';
+    } else {
+        $data['password'] = $password;
+    }
+
+    if (empty($error['emailError']) && empty($error['passwordError'])) {
+        $sql = "SELECT * FROM users WHERE email =:email";
+        $stmp = $conn->prepare($sql);
+        $stmp->bindParam(':email', $data['email'], PDO::PARAM_STR);
+        $stmp->execute();
+        $row = $stmp->fetch(PDO::FETCH_OBJ);
+
+        if ($row) {
+
+            if (password_verify($data['password'], $row->password)) {
+
+                $_SESSION['username'] = $row->name;
+                $_SESSION['id'] = $row->id;
+                $_SESSION['is_logined'] = true;
+
+                header('location:deshboard.php');
+
+
+            } else {
+                $error['passwordError'] = 'Password does not match';
+            }
+
+        } else {
+            $error['emailError'] = 'Email not found!';
+        }
+
+    }
+}
+
 
 ?>
 <!DOCTYPE html>
@@ -62,15 +101,18 @@ if(isset($_POST['submit'])){
                                     <div class="text-center">
                                         <h1 class="h4 text-gray-900 mb-4">Welcome Back!</h1>
                                     </div>
-                                    <form class="user" method="POST">
+                                    <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']) ?>" method="post" class="user" autocomplete="off">
                                         <div class="form-group">
-                                            <input type="email" name="email" class="form-control form-control-user"
+                                            <input type="email" name="email" value="<?php echo $data['email']??'';?>" class="form-control form-control-user"
                                                 id="exampleInputEmail" aria-describedby="emailHelp"
                                                 placeholder="Enter Email Address...">
+                                                <span class="text-danger"><?php echo $error['emailError']??'';?></span>
                                         </div>
                                         <div class="form-group">
-                                            <input type="password" name="password" class="form-control form-control-user"
-                                                id="exampleInputPassword" placeholder="Password">
+                                            <input type="password" name="password" value="<?php echo $data['password']??'';?>"
+                                                class="form-control form-control-user" id="exampleInputPassword"
+                                                placeholder="Password">
+                                                <span class="text-danger"><?php echo $error['passwordError']??'';?></span>
                                         </div>
                                         <div class="form-group">
                                             <div class="custom-control custom-checkbox small">
@@ -79,11 +121,11 @@ if(isset($_POST['submit'])){
                                                     Me</label>
                                             </div>
                                         </div>
-                                        <input type="submit" name="submit" value="Submit" class="btn btn-primary btn-user btn-block btn-user btn-block"> 
+                                        <input type="submit" name="submit" value="Submit"
+                                            class="btn btn-primary btn-user btn-block btn-user btn-block">
                                         </a>
                                         <hr>
                                     </form>
-                                    <hr>
                                     <div class="text-center">
                                         <a class="small" href="forgot-password.html">Forgot Password?</a>
                                     </div>

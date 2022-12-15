@@ -1,3 +1,15 @@
+<?php 
+    session_start();
+
+    if(!isset($_SESSION['id']) && $_SESSION['is_logined']==false){
+        header('Location:index.php');
+    }
+
+    $filepath = dirname(__FILE__);
+  
+    include  $filepath. '/../../config/Database.php';
+    include $filepath . "/../helpers/helper.php";
+?>
 <!DOCTYPE html>
 <html lang="en">
 
